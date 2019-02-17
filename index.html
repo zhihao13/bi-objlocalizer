@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<!-- 2019 Chris Wong -->
+<!-- Maintainer Contact: chriswong21@berkeley.edu -->
+<html lang="en">
+<head>
+  <title>Brand Imitation Paradigm</title>
+  <meta charset="utf-8"/>
+  <style>
+    /**
+     * Set global font and size
+     **/
+    html * {
+      font-family:"Roboto", "Helvetica", "Arial", sans-serif;
+      font-size: 3vmin;
+    }
+
+    h1 {
+        font-size: 6vmin;
+        font-style: none;
+    }
+
+    .main-div {
+        display: none;
+    }
+
+    /**
+     * Tables
+     **/
+
+    table {
+      border-spacing: 0;
+      table-layout: fixed;
+      border-collapse: collapse;
+      margin-left: 10%;
+      margin-right: 10%;
+      width: 80%;
+      border: 1px solid #ddd;
+    }
+
+    th, td {
+      text-align: center;
+      padding: .5vmin 1.5vmin;
+      text-align: left;
+      font-size: 1.5vmin;
+    }
+    tr:nth-child(odd) {
+      background-color: #f2f2f2;
+    }
+
+    tr:hover, thead:hover {
+      background-color: #def1fc;
+    }
+
+    /**
+     * image flip
+     **/
+
+    .flip-horizontal {
+      -moz-transform: scale(-1, 1);
+      -webkit-transform: scale(-1, 1);
+      -o-transform: scale(-1, 1);
+      transform: scale(-1, 1);
+      filter: FlipH;
+    }
+
+    .product {
+      padding:4px;
+    }
+
+  </style>
+  <script>
+
+    /**
+     * JSON/CSV serializing
+     **/
+
+     // converts CSV formatted to JSON
+    function csv_to_json(csv) {
+      var lines=csv.split("\n");
+      var result = [];
+      var headers=lines[0].split(",");
+      for (var i = 0; i < headers.length; i++) {
+        headers[i] = headers[i].replace(/ /g, '_');
+      }
+      for (var i = 1; i < lines.length; i++){
+          var obj = {};
+          var currentline=lines[i].split(",");
+          for (var j = 0; j < headers.length; j++){
+              obj[headers[j]] = currentline[j];
+          }
+          result.push(obj);
+      }
+      return result;
+    }
+
+    record_headers = ['timestamp', 'event_type', 
+                      'duration', 'trial_id', 
+                      'image_id', 'inverted'];
+
+    // Converts record to a CSV formatted string
+    function record_to_csv(record) {
+      var result = '';
+      for (var i = 0; i < record_headers.length; i++) {
+        result += record_headers[i];
+        if (i < record_headers.length - 1) {
+          result += ',';
+        }
+      }
+      result += '\n';
+      for (var i = 0; i < record.length; i++) {
+        var row = record[i];
+        var row_str = '';
+        for (var j = 0; j < record_headers.length; j++) {
+          value = row[record_headers[j]];
+          if (value != undefined) {
+            row_str += value;
+          }
+          if (j < record_headers.length - 1) {
+            row_str += ',';
+          }
+        }
+        result += row_str + '\n';
+      }
+      return result;
+    }
+
+    // Generates a table DOM element populated with record data
+    function generate_record_table(record) {
+      var table = document.createElement('table');
+      var header = document.createElement('tr');
+      for (var i = 0; i < record_headers.length; i++) {
+        var cell = document.createElement('td');
+        cell.innerHTML = record_headers[i];
+        header.appendChild(cell);
+      }
+      table.appendChild(header);
+      for (var i = 0; i < record.length; i++) {
+        var row = record[i];
+        var row_elm = document.createElement('tr');
+        for (var j = 0; j < record_headers.length; j++) {
+          var cell = document.createElement('td');
+          var val = row[record_headers[j]];
+          if (val != undefined) {
+            cell.innerHTML = String(val).substr(0, 14);
+          }
+          row_elm.appendChild(cell);
+        }
+        table.appendChild(row_elm);
+      }
+      return table;
+    }
+
+    window.onload = function() {
+        // Browser feature checks
+        if (!window.FileReader)
+            alert("This browser doesn't support file reading.");
+        if (typeof localStorage == 'undefined')
+          alert("This browser doesn't support local storage.");
+
+        // Globals
+        curr_page = null;
+        sequence_data = null;
+        sequence_file = null;
+        record = [];
+        trial_start = 0;
+        subject_id = '';
+
+        // Map of strings to page divs
+        var page_dict = {
+            'intro'  : document.getElementById('intro-div'),
+            'wait'   : document.getElementById('wait-div'),
+            'restart': document.getElementById('restart-div'),
+            'pause'  : document.getElementById('pause-div'),
+            'display': document.getElementById('display-div'),
+            'results': document.getElementById('results-div')
+        }
+
+        //  Document elements
+        var display_center = document.getElementById('display-center');
+        var restart_center = document.getElementById('restart-center');
+        var file_input     = document.getElementById('file-input');
+        var subject_input  = document.getElementById('subject-input');
+        var upload_button  = document.getElementById('upload-button');
+        var intro_div      = document.getElementById('intro-div');
+        var export_button  = document.getElementById('export-button');
+        var export_button_end  = document.getElementById('export-button-end');
+
+        if (!localStorage.length) {
+            setPage('intro');
+        } else {
+            loadLocalStorage();
+            setPage('restart');
+            restart_center.innerHTML +=  
+              `Subject ID: "${subject_id}", Trial ID: ${trial_start}, <br>` +
+              `Sequence Data Source: ${sequence_file}`;
+        }
+
+        subject_input.addEventListener("keyup", function(event) {
+            if (event.key === "Enter") {
+                upload_button.click();
+            }
+        });
+
+        // Set up input listener
+        document.addEventListener("keypress", async function(event) {
+            k = event.keyCode || event.which;
+            console.log('KeyPress: ' + k);
+            if (k == 53) {
+              appendSignalRecord();
+            }
+            if (curr_page == "wait" || curr_page == 'restart') {
+                if (k == 13) {
+                    setPage('pause');
+                } else if (k == 114 || k == 82) {
+                  setPage('intro');
+                }
+            } else if (curr_page == 'pause') {
+                if (k == 53) {
+                    setPage('display');
+                    await runDisplay();
+                } else if (k == 114 || k == 82) {
+                  setPage('intro');
+                }
+            } else if (curr_page == 'display') {
+                if (k==53) {
+                  return;
+                }
+                var displayed=document.getElementById('displayed');
+                if (displayed == undefined) {
+                  return;
+                }
+                if (displayed.classList.contains('flip-horizontal')) {
+                  displayed.style.padding = '0px';
+                  displayed.style.border  = '4px solid red';
+                  appendKeyPressRecord("True");
+                } else {
+                  appendKeyPressRecord("False");
+                }
+            }
+        });
+
+        // Sleep util
+        async function sleep(ms) {
+            await new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Gets the unix time
+        function getUnixTime() {
+          return Date.now() / 1000;
+        }
+
+        // Runs the display task
+        async function runDisplay() {
+
+            //Interval
+            display_center.innerHTML = 
+              `<img src=images/crosshair.jpg>`;
+            appendIntervalRecord(trial_id, 1000);
+
+            for(var trial_id = trial_start; trial_id < sequence_data.length; trial_id++) {
+                updateLocalStorage(trial_id);
+
+                //vars setup
+                var curr_trial = sequence_data[trial_id];
+                var trial_interval = parseFloat(curr_trial.TRIALS_INTERVAL_TIME);
+                var image_interval = parseFloat(curr_trial.IMAGE_INTERVAL_TIME || '0.0');
+                var presentation_time = parseFloat(curr_trial.PRESENTATION_TIME);
+                var target           = curr_trial.TARGET;
+                var product          = curr_trial.PRODUCT;
+                var target_angle     = curr_trial.TARGET_ANGEL;
+                var product_angle    = curr_trial.PRODUCT_ANGEL;
+                var target_inverted  = curr_trial.TARGET_INVERTED;
+                var product_inverted = curr_trial.PRODUCT_INVERTED;
+
+                console.log(curr_trial);
+
+                //Check for product
+                if(product != 'singleton') {
+                  //Show product
+                  img_class = 'product';
+                  img_class += product_inverted == " True" ? "flip-horizontal" : "";
+                  display_center.innerHTML = 
+                    `<img src=images/${product}_${product_angle}.jpg id=displayed class="${img_class}">`;
+                  appendTrialRecord(false, trial_id, curr_trial, presentation_time);
+                  await sleep(presentation_time);
+
+                  //Image Interval
+                  display_center.innerHTML = 
+                    `<img src=images/crosshair.jpg>`;
+                  appendIntervalRecord(trial_id, image_interval, false);
+                  await sleep(image_interval);
+                }
+
+                //Show target
+                img_class = 'product ';
+                img_class += target_inverted == "True" ? "flip-horizontal" : "";
+                display_center.innerHTML = 
+                  `<img src=images/${target}_${target_angle}.jpg id=displayed class="${img_class}">`;
+                appendTrialRecord(true, trial_id, curr_trial, presentation_time);
+                await sleep(presentation_time);
+
+                //Trial Interval
+                display_center.innerHTML = 
+                  `<img src=images/crosshair.jpg>`;
+                appendIntervalRecord(trial_id, trial_interval, true);
+                await sleep(trial_interval);
+            }
+            setPage('results');
+        }
+
+        // Export record as CSV
+        function exportRecord() {
+          var record_str = record_to_csv(record);
+          var hidden_elem = document.createElement('a');
+          hidden_elem.href = 'data:text/csv;charset=utf-8,' + encodeURI(record_str);
+          hidden_elem.target = '_blank';
+          hidden_elem.display = 'none';
+          var d = new Date();
+          var fname = subject_id + '_' + d.getFullYear() + '';
+          fname += (d.getMonth() + 1) + '' + d.getDate() + '_';
+          fname += d.getHours() + '' + d.getMinutes() + '.csv';
+          hidden_elem.download = fname;
+          console.log(hidden_elem.href)
+          document.body.appendChild(hidden_elem);
+          hidden_elem.click();
+          document.body.removeChild(hidden_elem);
+        }
+        export_button.onclick     = exportRecord;
+        export_button_end.onclick = exportRecord;
+
+        // Reset globals to default values
+        function resetGlobals() {
+          sequence_data = null;
+          sequence_file = null;
+          record = [];
+          trial_start = 0;
+          subject_id = '';
+        }
+
+        // Stores current state
+        function updateLocalStorage(index) {
+            localStorage.trial_start = index;
+            localStorage.record = JSON.stringify(record);
+            localStorage.sequence_data = JSON.stringify(sequence_data);
+            localStorage.subject_id = subject_id;
+            localStorage.sequence_file = sequence_file;
+        }
+
+        // Loads previous state
+        function loadLocalStorage() {
+            trial_start = parseInt(localStorage.trial_start);
+            record = JSON.parse(localStorage.record);
+            sequence_data = JSON.parse(localStorage.sequence_data);
+            sequence_file = localStorage.sequence_file;
+            subject_id = localStorage.subject_id;
+        }
+
+        // Go bears
+        function appendTrialRecord(is_target, trial_id, curr_trial, duration) {
+          // Record CSV headers:
+          // type, trial_id, timestamp, image_id, duration, inverted
+          var entry = {};
+          entry.event_type = is_target ? 'TARGET' : 'PRODUCT';
+          entry.trial_id = trial_id;
+          entry.timestamp = getUnixTime()
+          entry.duration = duration;
+          if (is_target) {
+            entry.image_id = curr_trial.TARGET + '_' + curr_trial.TARGET_ANGEL + '.jpg';
+            entry.inverted = curr_trial.TARGET_INVERTED == "True" ? 1 : 0;
+          } else {
+            entry.image_id = curr_trial.PRODUCT + '_' + curr_trial.TARGET_ANGEL + '.jpg';
+            entry.inverted = 0;
+          }
+          record.push(entry);
+        }
+
+        // append interval to the global record
+        function appendIntervalRecord(trial_id, duration, trial) {
+          var entry = {};
+          entry.event_type = trial ? 'TRIAL_INTERVAL' : 'IMAGE_INTERVAL';
+          entry.timestamp = getUnixTime();
+          entry.trial_id = trial_id;
+          entry.duration = duration;
+          record.push(entry);
+        }
+
+        // logs any keypresses that aren't 5 (the signal)
+        function appendKeyPressRecord(correct) {
+          var entry = {};
+          entry.event_type = 'KEYPRESS';
+          entry.timestamp  = getUnixTime();
+          entry.image_id = correct;
+          record.push(entry);
+        }
+
+        // logs signals
+        function appendSignalRecord() {
+          var entry = {};
+          entry.event_type = 'SIGNAL';
+          entry.timestamp = getUnixTime();
+          record.push(entry);
+        }
+ 
+        // switches to the page specified by page_id
+        function setPage(page_id) {
+            for (var key in page_dict) {
+              page_dict[key].style.display = 'none';
+            }
+            page_dict[page_id].style.display = 'inline';
+            curr_page = page_id;
+            if (page_id == 'results' || page_id == 'restart') {
+              page_dict[page_id].appendChild(
+                 generate_record_table(record)
+              );
+            }
+        }
+
+        /**
+         * Loads the subject id and sequence data from file
+         **/
+        upload_button.onclick = function() {
+            resetGlobals()
+            var input = file_input;
+            var reader = new FileReader();
+            if (input.files.length) {
+                var text_file = input.files[0];
+                subject_id = subject_input.value;
+                sequence_file = text_file.name;
+                // Read file
+                reader.readAsText(text_file);
+                // When loaded, processs
+                reader.onload = processFile;
+
+            } else {
+                alert('Please upload a file before continuing.');
+            }
+        };
+
+        /**
+         * Processes sequence data on file load
+         * Transissions display to 'wait' page.
+         **/
+        function processFile(e) {
+            var file = e.target.result;
+            if (file && file.length) {
+                sequence_data = csv_to_json(file);
+                updateLocalStorage(0);
+                setPage('wait');
+            } else {
+                alert('Problematic input file.');
+            }
+        }
+    }
+  </script>
+  <noscript>
+    <div class="noscriptmsg">
+        Please enable javascript.
+    </div>
+</noscript>
+</head>
+<body>
+    <div class=main-div id=intro-div>
+        <center>
+            <h1>
+                Experiment Configuration
+            </h1>
+        </center>
+        Upload a sequence file and enter the subject ID.
+        <br>
+        <br>
+        Sequence File: <input type=file id=file-input>
+        <br>
+        Subject ID: <input type=text id=subject-input placeholder="..."/>
+        <br>
+        <button id=upload-button>Submit</button>
+    </div>
+
+    <div class=main-div id=wait-div>
+        <center>
+            <h1>
+                Please wait for a technician to start the experiment.
+            </h1>
+        </center>
+    </div>
+
+    <div class=main-div id=restart-div>
+        <center id=restart-center>
+            <h1>
+                A prior session was found. Please wait for a technician to restart it.
+            </h1>
+        </center>
+        <center>
+            <button id=export-button>Export Existing Data</button>
+        </center>
+    </div>
+
+    <div class=main-div id=pause-div>
+        <center>
+            <h1>
+              Awaiting Signal
+            </h1>
+        </center>
+    </div> 
+
+    <div class=main-div id=display-div>
+        <center id=display-center>
+          <img src=images/crosshair.jpg>
+        </center>
+    </div>
+
+    <div class=main-div id=results-div>
+        <center>
+          <h1>
+            Sequence Over
+          </h1>
+        </center>
+        <center>
+          <button id=export-button-end>Export</button>
+        </center>
+    </div>
+</body>
+</html>
