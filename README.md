@@ -1,5 +1,5 @@
 # Imitation Paradigm
-Source for browser version of imitation paradigm.
+Source for browser version of brand imitation paradigm. Visit live version [here](https://neuroecon.github.io/imitation-paradigm).
 
 # Setup Instructions
 On first load, you should come to a page titled "Experiment Configuration". Browse and upload a valid sequence file (examples can be found in ``sequences/``) and submit a subject ID if needed. After submitting you should see the message "Please wait for a technician..." Press enter on this page when you are ready to start the experiment. The page will then wait for a signal (the keypress 5) before beginning the experiment.
