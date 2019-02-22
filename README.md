@@ -6,4 +6,6 @@ On first load, you should come to a page titled "Experiment Configuration". Brow
 
 If the browser or tab crashes unexpectedly during the experiment, reloading the page will take you to a page titled "A prior session was found..." You can export download the data collected so far with the "Export Existing Data" button, or press enter to restart the experiment (this will take you to the "Awaiting signal" page.)
 
+To reset (return to the "Experiment Configuration" page) press "r" from any page while the experiment isn't running (key presses while the experiment is running are logged and then ignored).
+
 After the sequence is over you can export the data with the "Export Data" button.
