@@ -202,10 +202,10 @@
         });
 
         // Set up input listener
-        document.addEventListener("keypress", async function(event) {
+        document.addEventListener("keydown", async function(event) {
             k = event.keyCode || event.which;
             console.log('KeyPress: ' + k);
-            if (k == 53) {
+            if (k == 53 || event.key == "5") {
               appendSignalRecord();
             }
             if (curr_page == "wait" || curr_page == 'restart') {
@@ -227,14 +227,15 @@
                 }
                 var displayed=document.getElementById('displayed');
                 if (displayed == undefined) {
+                  appendKeyPressRecord(event.key, "False");
                   return;
                 }
                 if (displayed.classList.contains('flip-horizontal')) {
                   displayed.style.padding = '0px';
                   displayed.style.border  = '4px solid red';
-                  appendKeyPressRecord("True");
+                  appendKeyPressRecord(event.key, "True");
                 } else {
-                  appendKeyPressRecord("False");
+                  appendKeyPressRecord(event.key, "False");
                 }
             }
         });
@@ -255,7 +256,7 @@
             //Interval
             display_center.innerHTML = 
               `<img src=images/crosshair.jpg>`;
-            appendIntervalRecord(trial_id, 1000);
+            appendIntervalRecord('start', 1000);
 
             for(var trial_id = trial_start; trial_id < sequence_data.length; trial_id++) {
                 updateLocalStorage(trial_id);
@@ -305,6 +306,7 @@
                 appendIntervalRecord(trial_id, trial_interval, true);
                 await sleep(trial_interval);
             }
+            updateLocalStorage(sequence_data.length)
             setPage('results');
         }
 
@@ -385,9 +387,9 @@
         }
 
         // logs any keypresses that aren't 5 (the signal)
-        function appendKeyPressRecord(correct) {
+        function appendKeyPressRecord(key, correct) {
           var entry = {};
-          entry.event_type = 'KEYPRESS';
+          entry.event_type = 'KEYPRESS_' + key;
           entry.timestamp  = getUnixTime();
           entry.image_id = correct;
           record.push(entry);
