@@ -182,6 +182,7 @@
         var subject_input      = document.getElementById('subject-input');
         var run_length_input   = document.getElementById('run-length-input');
         var start_trial_input  = document.getElementById('start-trial-input');
+        var repeat_run         = document.getElementById('repeat-run');
         var upload_button      = document.getElementById('upload-button');
         var intro_div          = document.getElementById('intro-div');
         var export_button      = document.getElementById('export-button');
@@ -345,6 +346,12 @@
 
         reset_button.onclick = function() {
           setPage("intro");
+        }
+
+        repeat_run.onclick = function() {
+          trial_start = run_start;
+          localStorage.trial_start = run_start;
+          setPage("pause");
         }
 
         // Reset globals to default values
@@ -523,6 +530,8 @@
         <center>
             <h1>
                 Please wait for a technician to start the experiment.
+                <br>
+                <button id=repeat-run>Repeat previous run</button>
             </h1>
         </center>
     </div>
