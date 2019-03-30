@@ -55,12 +55,12 @@
      * image flip
      **/
 
-    .flip-horizontal {
-      -moz-transform: scale(-1, 1);
-      -webkit-transform: scale(-1, 1);
-      -o-transform: scale(-1, 1);
-      transform: scale(-1, 1);
-      filter: FlipH;
+    .flip-vertical {
+      -moz-transform: scale(1, -1);
+      -webkit-transform: scale(1, -1);
+      -o-transform: scale(1, -1);
+      transform: scale(1, -1);
+      filter: FlipV;
     }
 
     .product {
@@ -176,14 +176,17 @@
         }
 
         //  Document elements
-        var display_center = document.getElementById('display-center');
-        var restart_center = document.getElementById('restart-center');
-        var file_input     = document.getElementById('file-input');
-        var subject_input  = document.getElementById('subject-input');
-        var upload_button  = document.getElementById('upload-button');
-        var intro_div      = document.getElementById('intro-div');
-        var export_button  = document.getElementById('export-button');
+        var display_center     = document.getElementById('display-center');
+        var restart_center     = document.getElementById('restart-center');
+        var file_input         = document.getElementById('file-input');
+        var subject_input      = document.getElementById('subject-input');
+        var run_length_input   = document.getElementById('run-length-input');
+        var start_trial_input  = document.getElementById('start-trial-input');
+        var upload_button      = document.getElementById('upload-button');
+        var intro_div          = document.getElementById('intro-div');
+        var export_button      = document.getElementById('export-button');
         var export_button_end  = document.getElementById('export-button-end');
+        var reset_button       = document.getElementById('reset-button');
 
         if (!localStorage.length) {
             setPage('intro');
@@ -230,7 +233,7 @@
                   appendKeyPressRecord(event.key, "False");
                   return;
                 }
-                if (displayed.classList.contains('flip-horizontal')) {
+                if (displayed.classList.contains('flip-vertical')) {
                   displayed.style.padding = '0px';
                   displayed.style.border  = '4px solid red';
                   appendKeyPressRecord(event.key, "True");
@@ -252,12 +255,14 @@
 
         // Runs the display task
         async function runDisplay() {
-
+            start_time = getUnixTime();
             //Interval
             display_center.innerHTML = 
               `<img src=images/crosshair.jpg>`;
-            appendIntervalRecord('start', 1000);
-
+            appendRunRecord(true, trial_start);
+            run_start = trial_start;
+            localStorage.run_start = trial_start;
+            await sleep(3000);
             for(var trial_id = trial_start; trial_id < sequence_data.length; trial_id++) {
                 updateLocalStorage(trial_id);
 
@@ -279,7 +284,7 @@
                 if(product != 'singleton') {
                   //Show product
                   img_class = 'product';
-                  img_class += product_inverted == " True" ? "flip-horizontal" : "";
+                  img_class += product_inverted == " True" ? "flip-vertical" : "";
                   display_center.innerHTML = 
                     `<img src=images/${product}_${product_angle}.jpg id=displayed class="${img_class}">`;
                   appendTrialRecord(false, trial_id, curr_trial, presentation_time);
@@ -294,7 +299,7 @@
 
                 //Show target
                 img_class = 'product ';
-                img_class += target_inverted == "True" ? "flip-horizontal" : "";
+                img_class += target_inverted == "True" ? "flip-vertical" : "";
                 display_center.innerHTML = 
                   `<img src=images/${target}_${target_angle}.jpg id=displayed class="${img_class}">`;
                 appendTrialRecord(true, trial_id, curr_trial, presentation_time);
@@ -305,6 +310,14 @@
                   `<img src=images/crosshair.jpg>`;
                 appendIntervalRecord(trial_id, trial_interval, true);
                 await sleep(trial_interval);
+
+                if (getUnixTime() - start_time >= run_length * 60) {
+                  appendRunRecord(false, trial_id);
+                  trial_start = trial_id + 1;
+                  updateLocalStorage(trial_id + 1);
+                  setPage('wait');
+                  return;
+                } 
             }
             updateLocalStorage(sequence_data.length)
             setPage('results');
@@ -330,6 +343,10 @@
         export_button.onclick     = exportRecord;
         export_button_end.onclick = exportRecord;
 
+        reset_button.onclick = function() {
+          setPage("intro");
+        }
+
         // Reset globals to default values
         function resetGlobals() {
           sequence_data = null;
@@ -337,11 +354,15 @@
           record = [];
           trial_start = 0;
           subject_id = '';
+          run_length = 10;
+          run_start = 0;
         }
 
         // Stores current state
         function updateLocalStorage(index) {
+            localStorage.run_start = run_start;
             localStorage.trial_start = index;
+            localStorage.run_length = run_length;
             localStorage.record = JSON.stringify(record);
             localStorage.sequence_data = JSON.stringify(sequence_data);
             localStorage.subject_id = subject_id;
@@ -350,11 +371,14 @@
 
         // Loads previous state
         function loadLocalStorage() {
-            trial_start = parseInt(localStorage.trial_start);
+            run_start = parseInt(localStorage.run_start);
+            // trial_start = parseInt(localStorage.trial_start);
+            trial_start = run_start;
             record = JSON.parse(localStorage.record);
             sequence_data = JSON.parse(localStorage.sequence_data);
             sequence_file = localStorage.sequence_file;
             subject_id = localStorage.subject_id;
+            run_length = localStorage.run_length;
         }
 
         // Go bears
@@ -374,6 +398,18 @@
             entry.inverted = 0;
           }
           record.push(entry);
+        }
+
+        function appendRunRecord(start, trial_id) {
+            var entry = {};
+            entry.timestamp = getUnixTime();
+            entry.trial_id = trial_id;
+            if (start) {
+                entry.event_type = "RUN_START";
+            } else {
+                entry.event_type = "RUN_END";
+            }
+            record.push(entry)
         }
 
         // append interval to the global record
@@ -428,6 +464,8 @@
                 var text_file = input.files[0];
                 subject_id = subject_input.value;
                 sequence_file = text_file.name;
+                run_length = run_length_input.value;
+                trial_start = start_trial_input.value;
                 // Read file
                 reader.readAsText(text_file);
                 // When loaded, processs
@@ -474,6 +512,10 @@
         <br>
         Subject ID: <input type=text id=subject-input placeholder="..."/>
         <br>
+        Run Length (Minutes): <input type=text id=run-length-input value="10"/>
+        <br>
+        Start Trial: <input type=text id=start-trial-input value="0"/>
+        <br>
         <button id=upload-button>Submit</button>
     </div>
 
@@ -492,7 +534,8 @@
             </h1>
         </center>
         <center>
-            <button id=export-button>Export Existing Data</button>
+            <button id=export-button>Export Existing Data</button> 
+            <button id=reset-button>Reset Experiment</button>
         </center>
     </div>
 
