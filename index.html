@@ -23,6 +23,15 @@
         display: none;
     }
 
+    img {
+      position:absolute;
+      top:0;
+      bottom:0;
+      left:0;
+      right:0;
+      margin:auto;
+    }
+
     /**
      * Tables
      **/
@@ -282,6 +291,13 @@
                 console.log(curr_trial);
 
                 //Check for product
+                if(target.toLowerCase() === "break") {
+                  appendRunRecord(false, trial_id);
+                  trial_start = trial_id + 1;
+                  updateLocalStorage(trial_id + 1);
+                  setPage('wait');
+                  return;
+                }
                 if(product != 'singleton') {
                   //Show product
                   img_class = 'product';
@@ -312,13 +328,13 @@
                 appendIntervalRecord(trial_id, trial_interval, true);
                 await sleep(trial_interval);
 
-                if (getUnixTime() - start_time >= run_length * 60) {
-                  appendRunRecord(false, trial_id);
-                  trial_start = trial_id + 1;
-                  updateLocalStorage(trial_id + 1);
-                  setPage('wait');
-                  return;
-                } 
+                // if (getUnixTime() - start_time >= run_length * 60) {
+                //   appendRunRecord(false, trial_id);
+                //   trial_start = trial_id + 1;
+                //   updateLocalStorage(trial_id + 1);
+                //   setPage('wait');
+                //   return;
+                // } 
             }
             updateLocalStorage(sequence_data.length);
             setPage('results');
