@@ -1,8 +1,7 @@
 ,TARGET,PRODUCT,TARGET_ANGEL,PRODUCT_ANGEL,SAME_ANGEL,PRESENTATION TIME,IMAGE INTERVAL TIME,TRIALS INTERVAL TIME,TARGET_INVERTED,PRODUCT_INVERTED
 0,05_chocolate,singleton,2,0,,800,,568.425367376831,True,
 1,02_chocolate,singleton,3,0,,800,,1534.39859964491,True,
-0,break,,,,,,,,
-2,06_chocolate,singleton,3,0,,800,,895.636217777521,True,
+2,break,,,,,,,,
 3,01_chocolate,singleton,2,0,,800,,3280.73286167969,True,
 4,00_chocolate,04_chocolate,3,1,False,800,400,2008.74107693405,True,True
 5,09_chocolate,singleton,3,0,,800,,1866.68013866032,True,
