@@ -85,10 +85,8 @@
 
      // converts CSV formatted to JSON
     function csv_to_json(csv) {
-      console.log(csv);
-      csv = csv.replace("\r", "\n");
+      csv = csv.replace(/\r/gm, "\n");
       var lines=csv.split("\n");
-      console.log(lines);
       console.log(lines.length);
       var result = [];
       var headers=lines[0].split(",");
