@@ -85,13 +85,19 @@
 
      // converts CSV formatted to JSON
     function csv_to_json(csv) {
+      console.log(csv);
+      csv = csv.replace("\r", "\n");
       var lines=csv.split("\n");
+      console.log(lines);
+      console.log(lines.length);
       var result = [];
       var headers=lines[0].split(",");
+      console.log(headers);
       for (var i = 0; i < headers.length; i++) {
         headers[i] = headers[i].replace(/ /g, '_');
       }
       for (var i = 1; i < lines.length; i++){
+          console.log(i);
           var obj = {};
           var currentline=lines[i].split(",");
           for (var j = 0; j < headers.length; j++){
@@ -99,6 +105,7 @@
           }
           result.push(obj);
       }
+      console.log(result);
       return result;
     }
 
@@ -265,6 +272,7 @@
 
         // Runs the display task
         async function runDisplay() {
+            console.log(sequence_data);
             start_time = getUnixTime();
             //Interval
             display_center.innerHTML = 
@@ -274,6 +282,7 @@
             localStorage.run_start = trial_start;
             await sleep(3000);
             for(var trial_id = trial_start; trial_id < sequence_data.length; trial_id++) {
+                console.log(sequence_data[trial_id]);
                 updateLocalStorage(trial_id);
 
                 //vars setup
@@ -287,6 +296,8 @@
                 var product_angle    = curr_trial.PRODUCT_ANGEL;
                 var target_inverted  = curr_trial.TARGET_INVERTED;
                 var product_inverted = curr_trial.PRODUCT_INVERTED;
+                console.log(trial_interval);
+                console.log(image_interval);
 
                 console.log(curr_trial);
 
