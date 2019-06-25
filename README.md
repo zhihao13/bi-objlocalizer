@@ -1,3 +1,10 @@
+# Brand Imitation - object localizer paradigm
+Source for browser version of the object localizer paradigm in the brand imitation study.
+
+
+
+# Below are the old documentation from Chris for the original BI main task paradigm
+
 # Imitation Paradigm
 Source for browser version of brand imitation paradigm. Visit live version [here](https://neuroecon.github.io/imitation-paradigm).
 
