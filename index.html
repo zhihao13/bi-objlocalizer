@@ -438,10 +438,10 @@
           if (is_target) {
             entry.image_id = curr_trial.TARGET + '.jpeg';
             //entry.image_id = curr_trial.TARGET + '_' + curr_trial.TARGET_ANGEL + '.jpg';
-            entry.inverted = curr_trial.REPEATED == "True" ? 1 : 0;
+            entry.repeated = curr_trial.REPEATED == "True" ? 1 : 0;
             //entry.inverted = curr_trial.TARGET_INVERTED == "True" ? 1 : 0;
           } else {
-            entry.image_id = curr_trial.PRODUCT + '_' + '.jpg';
+            entry.image_id = curr_trial.PRODUCT + '_' + '.jpeg';
             //entry.image_id = curr_trial.PRODUCT + '_' + curr_trial.TARGET_ANGEL + '.jpg';
             //entry.inverted = curr_trial.PRODUCT_INVERTED == "True" ? 1 : 0;
           }
