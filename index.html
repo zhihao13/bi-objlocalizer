@@ -109,7 +109,8 @@
 
     record_headers = ['timestamp', 'event_type', 
                       'duration', 'trial_id', 
-                      'image_id', 'inverted'];
+                      'image_id', 'repeated'];
+                      //'image_id', 'inverted'];
 
     // Converts record to a CSV formatted string
     function record_to_csv(record) {
@@ -248,7 +249,8 @@
                   appendKeyPressRecord(event.key, "False");
                   return;
                 }
-                if (displayed.classList.contains('flip-vertical')) {
+                if (displayed.classList.contains('repeated')) {
+                //if (displayed.classList.contains('flip-vertical')) {
                   displayed.style.padding = '0px';
                   displayed.style.border  = '4px solid red';
                   appendKeyPressRecord(event.key, "True");
@@ -290,10 +292,11 @@
                 var presentation_time = parseFloat(curr_trial.PRESENTATION_TIME);
                 var target           = curr_trial.TARGET;
                 var product          = curr_trial.PRODUCT;
-                var target_angle     = curr_trial.TARGET_ANGEL;
-                var product_angle    = curr_trial.PRODUCT_ANGEL;
-                var target_inverted  = curr_trial.TARGET_INVERTED;
-                var product_inverted = curr_trial.PRODUCT_INVERTED;
+                //var target_angle     = curr_trial.TARGET_ANGEL;
+                //var product_angle    = curr_trial.PRODUCT_ANGEL;
+                //var target_inverted  = curr_trial.TARGET_INVERTED;
+                //var product_inverted = curr_trial.PRODUCT_INVERTED;
+                var repeated = curr_trial.REPEATED;
                 console.log(trial_interval);
                 console.log(image_interval);
 
@@ -325,9 +328,11 @@
 
                 //Show target
                 img_class = 'product ';
-                img_class += target_inverted == "True" ? "flip-vertical" : "";
+                img_class += repeated == "True" ? "repeated" : "";
+                //img_class += target_inverted == "True" ? "flip-vertical" : "";
                 display_center.innerHTML = 
-                  `<img src=images/${target}_${target_angle}.jpg id=displayed class="${img_class}">`;
+                  `<img src=images/${target}.jpg id=displayed class="${img_class}">`;
+                  //`<img src=images/${target}_${target_angle}.jpg id=displayed class="${img_class}">`;
                 appendTrialRecord(true, trial_id, curr_trial, presentation_time);
                 await sleep(presentation_time);
 
@@ -416,18 +421,22 @@
         // Go bears
         function appendTrialRecord(is_target, trial_id, curr_trial, duration) {
           // Record CSV headers:
-          // type, trial_id, timestamp, image_id, duration, inverted
+          // type, trial_id, timestamp, image_id, duration, repeated
+          //// (OLD) type, trial_id, timestamp, image_id, duration, inverted
           var entry = {};
           entry.event_type = is_target ? 'TARGET' : 'PRODUCT';
           entry.trial_id = trial_id;
           entry.timestamp = getUnixTime()
           entry.duration = duration;
           if (is_target) {
-            entry.image_id = curr_trial.TARGET + '_' + curr_trial.TARGET_ANGEL + '.jpg';
-            entry.inverted = curr_trial.TARGET_INVERTED == "True" ? 1 : 0;
+            entry.image_id = curr_trial.TARGET + '.jpg';
+            //entry.image_id = curr_trial.TARGET + '_' + curr_trial.TARGET_ANGEL + '.jpg';
+            entry.inverted = curr_trial.REPEATED == "True" ? 1 : 0;
+            //entry.inverted = curr_trial.TARGET_INVERTED == "True" ? 1 : 0;
           } else {
-            entry.image_id = curr_trial.PRODUCT + '_' + curr_trial.TARGET_ANGEL + '.jpg';
-            entry.inverted = curr_trial.PRODUCT_INVERTED == "True" ? 1 : 0;
+            entry.image_id = curr_trial.PRODUCT + '_' + '.jpg';
+            //entry.image_id = curr_trial.PRODUCT + '_' + curr_trial.TARGET_ANGEL + '.jpg';
+            //entry.inverted = curr_trial.PRODUCT_INVERTED == "True" ? 1 : 0;
           }
           record.push(entry);
         }
