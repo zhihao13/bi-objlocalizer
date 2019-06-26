@@ -338,7 +338,7 @@
                 img_class += repeated == "True" ? "repeated" : "";
                 //img_class += target_inverted == "True" ? "flip-vertical" : "";
                 display_center.innerHTML = 
-                  `<img src=images/${target}.jpg id=displayed class="${img_class}">`;
+                  `<img src=images/${target}.jpeg id=displayed class="${img_class}">`;
                   //`<img src=images/${target}_${target_angle}.jpg id=displayed class="${img_class}">`;
                 appendTrialRecord(true, trial_id, curr_trial, presentation_time);
                 await sleep(presentation_time);
@@ -436,7 +436,7 @@
           entry.timestamp = getUnixTime()
           entry.duration = duration;
           if (is_target) {
-            entry.image_id = curr_trial.TARGET + '.jpg';
+            entry.image_id = curr_trial.TARGET + '.jpeg';
             //entry.image_id = curr_trial.TARGET + '_' + curr_trial.TARGET_ANGEL + '.jpg';
             entry.inverted = curr_trial.REPEATED == "True" ? 1 : 0;
             //entry.inverted = curr_trial.TARGET_INVERTED == "True" ? 1 : 0;
